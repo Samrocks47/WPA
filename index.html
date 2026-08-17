@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracker — Calorie &amp; Step Tracker</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="theme-color" content="#1A1A18">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FAFAF8;
+  --surface:#FFFFFF;
+  --surface2:#F4F4F2;
+  --surface3:#EBEBE8;
+  --line:#E3E3DF;
+  --accent:#1A1A18;
+  --accent-dim:#6B6B66;
+  --text:#141412;
+  --text-dim:#6B6B66;
+  --text-faint:#A3A39C;
+  --good:#4C8C5C;
+  --bad:#B4523B;
+  --radius:12px;
+}
+[data-theme="dark"]{
+  --bg:#121212;
+  --surface:#1A1A1A;
+  --surface2:#212121;
+  --surface3:#2A2A2A;
+  --line:#2F2F2F;
+  --accent:#F2F2ED;
+  --accent-dim:#A3A39C;
+  --text:#EDEDE9;
+  --text-dim:#9C9C96;
+  --text-faint:#6B6B66;
+  --good:#6FAE7A;
+  --bad:#D0806A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Sora',sans-serif;
+  min-height:100vh;
+  padding-bottom:60px;
+  transition:background .2s ease, color .2s ease;
+}
+.serif{font-family:'Bricolage Grotesque',sans-serif;}
+.mono{font-family:'Space Mono',monospace;}
+
+/* ===== Theme toggle ===== */
+.theme-toggle{
+  width:44px;height:24px;border-radius:20px;
+  background:var(--surface3);border:1px solid var(--line);
+  position:relative;cursor:pointer;flex:none;
+}
+.theme-toggle::after{
+  content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;
+  border-radius:50%;background:var(--accent);transition:left .2s ease;
+}
+[data-theme="dark"] .theme-toggle::after{left:22px;}
+
+/* ===== Header ===== */
+header{
+  padding:28px 20px 18px;
+  border-bottom:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:12px;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.leaf-mark{
+  width:34px;height:34px;flex:none;
+  border-radius:8px;
+  background:var(--accent);
+}
+.brand h1{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-weight:600;
+  font-size:22px;
+  margin:0;
+  letter-spacing:0.3px;
+}
+.brand p{margin:0;font-size:12px;color:var(--text-dim);letter-spacing:0.4px;text-transform:uppercase;}
+.date-picker{
+  background:var(--surface2);
+  border:1px solid var(--line);
+  color:var(--text);
+  padding:9px 14px;
+  border-radius:10px;
+  font-family:'Space Mono',monospace;
+  font-size:13px;
+}
+
+/* ===== Nav ===== */
+nav{
+  display:flex;
+  gap:6px;
+  padding:14px 20px 0;
+  overflow-x:auto;
+  border-bottom:1px solid var(--line);
+}
+nav button{
+  background:none;
+  border:none;
+  color:var(--text-dim);
+  font-family:'Sora',sans-serif;
+  font-weight:600;
+  font-size:13.5px;
+  padding:10px 16px;
+  cursor:pointer;
+  border-bottom:2px solid transparent;
+  white-space:nowrap;
+  letter-spacing:0.2px;
+}
+nav button.active{color:var(--accent);border-bottom-color:var(--accent);}
+nav button:hover{color:var(--text);}
+
+main{max-width:980px;margin:0 auto;padding:24px 20px;}
+.view{display:none;animation:fade .25s ease;}
+.view.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+/* ===== Cards ===== */
+.card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:20px;
+}
+.grid{display:grid;gap:16px;}
+.grid.cols-3{grid-template-columns:repeat(3,1fr);}
+.grid.cols-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:720px){.grid.cols-3,.grid.cols-2{grid-template-columns:1fr;}}
+
+/* ===== Dashboard hero ===== */
+.hero{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  gap:28px;
+  align-items:center;
+  background:linear-gradient(160deg,var(--surface2),var(--surface));
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:26px;
+}
+@media(max-width:720px){.hero{grid-template-columns:1fr;text-align:center;}}
+.gauge-wrap{position:relative;width:200px;height:200px;margin:0 auto;}
+.gauge-wrap svg{transform:rotate(-90deg);}
+.gauge-bg{fill:none;stroke:var(--surface3);stroke-width:14;}
+.gauge-fg{fill:none;stroke:var(--accent);stroke-width:14;stroke-linecap:round;transition:stroke-dashoffset .6s ease;}
+.gauge-center{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.gauge-center .num{font-family:'Bricolage Grotesque',sans-serif;font-size:34px;font-weight:600;line-height:1;}
+.gauge-center .lbl{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-top:6px;}
+.hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.stat-mini{padding:12px 14px;background:rgba(0,0,0,0.15);border-radius:10px;border:1px solid var(--line);}
+.stat-mini .v{font-family:'Space Mono',monospace;font-size:19px;font-weight:700;color:var(--text);}
+.stat-mini .k{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.6px;margin-top:2px;}
+.stat-mini.pos .v{color:var(--good);}
+.stat-mini.neg .v{color:var(--bad);}
+
+/* ===== Section headers ===== */
+.section-title{
+  font-family:'Bricolage Grotesque',sans-serif;font-size:18px;font-weight:600;
+  margin:30px 0 12px;display:flex;align-items:center;justify-content:space-between;
+}
+.section-title span.hint{font-family:'Sora',sans-serif;font-size:12px;color:var(--text-faint);font-weight:500;}
+
+/* ===== Forms ===== */
+label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;}
+input,select{
+  width:100%;
+  background:var(--surface2);
+  border:1px solid var(--line);
+  color:var(--text);
+  padding:10px 12px;
+  border-radius:9px;
+  font-family:'Sora',sans-serif;
+  font-size:14px;
+}
+input:focus,select:focus{outline:1px solid var(--accent);border-color:var(--accent);}
+.field{margin-bottom:14px;}
+.btn{
+  background:var(--accent);
+  color:var(--bg);
+  border:none;
+  padding:11px 20px;
+  border-radius:9px;
+  font-weight:700;
+  font-size:13.5px;
+  cursor:pointer;
+  letter-spacing:0.2px;
+}
+.btn:hover{background:var(--text);color:var(--bg);}
+.btn.secondary{background:transparent;border:1px solid var(--accent-dim);color:var(--accent);}
+.btn.danger{background:transparent;border:1px solid var(--bad);color:var(--bad);}
+.btn.small{padding:7px 12px;font-size:12px;}
+.row{display:flex;gap:12px;align-items:end;flex-wrap:wrap;}
+.row > *{flex:1;min-width:120px;}
+
+/* ===== Food list ===== */
+.food-search{margin-bottom:14px;}
+.cat-block{margin-bottom:18px;}
+.cat-heading{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent-dim);font-weight:700;margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+.food-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;max-height:420px;overflow-y:auto;padding-right:4px;}
+.food-grid.flat{max-height:none;}
+.food-item{
+  background:var(--surface2);border:1px solid var(--line);border-radius:10px;
+  padding:12px 14px;cursor:pointer;transition:border-color .15s;
+}
+.food-item:hover{border-color:var(--accent-dim);}
+.food-item .fname{font-weight:700;font-size:13.5px;}
+.food-item .fmeta{font-size:11.5px;color:var(--text-dim);margin-top:4px;font-family:'Space Mono',monospace;}
+.food-item .fcat{display:inline-block;margin-top:6px;font-size:10px;padding:2px 8px;border-radius:20px;background:var(--surface3);color:var(--accent-dim);text-transform:uppercase;letter-spacing:0.5px;}
+
+/* ===== Log table ===== */
+table{width:100%;border-collapse:collapse;margin-top:8px;}
+th{text-align:left;font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.5px;padding:8px 10px;border-bottom:1px solid var(--line);}
+td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px;}
+td.num{font-family:'Space Mono',monospace;text-align:right;}
+tr:last-child td{border-bottom:none;}
+.empty-row td{color:var(--text-faint);text-align:center;padding:22px;font-style:italic;}
+.del-btn{background:none;border:none;color:var(--bad);cursor:pointer;font-size:15px;}
+
+/* ===== Reminders ===== */
+.reminder-item{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface2);border:1px solid var(--line);border-radius:10px;
+  padding:12px 14px;margin-bottom:10px;
+}
+.reminder-item .rt{font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);}
+.reminder-item .rl{font-size:12.5px;color:var(--text-dim);margin-top:2px;}
+.toggle{
+  width:38px;height:22px;border-radius:20px;background:var(--surface3);
+  position:relative;cursor:pointer;border:1px solid var(--line);flex:none;
+}
+.toggle.on{background:var(--good);}
+.toggle::after{
+  content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;
+  border-radius:50%;background:#fff;transition:left .15s;
+}
+.toggle.on::after{left:18px;}
+
+#toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--surface3);border:1px solid var(--accent-dim);color:var(--text);
+  padding:12px 20px;border-radius:10px;font-size:13.5px;
+  opacity:0;pointer-events:none;transition:opacity .3s, bottom .3s;
+  z-index:99;box-shadow:0 10px 30px rgba(0,0,0,0.4);
+}
+#toast.show{opacity:1;bottom:30px;}
+
+.note{font-size:12px;color:var(--text-faint);margin-top:10px;line-height:1.5;}
+.divider{height:1px;background:var(--line);margin:20px 0;}
+.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-left:8px;}
+.tag.good{background:rgba(127,190,134,0.15);color:var(--good);}
+.tag.bad{background:rgba(208,122,94,0.15);color:var(--bad);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="leaf-mark"></div>
+    <div>
+      <h1>Tracker</h1>
+      <p>calories · steps · balance</p>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <input type="date" id="datePicker" class="date-picker">
+    <div class="theme-toggle" id="themeToggle" title="Toggle dark mode"></div>
+  </div>
+</header>
+
+<nav id="nav">
+  <button data-view="dashboard" class="active">Dashboard</button>
+  <button data-view="food">Food Log</button>
+  <button data-view="steps">Steps &amp; Activity</button>
+  <button data-view="profile">Profile · BMR/BMI</button>
+  <button data-view="reminders">Reminders</button>
+</nav>
+
+<main>
+
+  <!-- DASHBOARD -->
+  <div class="view active" id="view-dashboard">
+    <div class="hero">
+      <div class="gauge-wrap">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <circle class="gauge-bg" cx="100" cy="100" r="86"></circle>
+          <circle class="gauge-fg" id="gaugeFg" cx="100" cy="100" r="86" stroke-dasharray="540" stroke-dashoffset="540"></circle>
+        </svg>
+        <div class="gauge-center">
+          <div class="num" id="gaugeNum">0</div>
+          <div class="lbl" id="gaugeLbl">kcal net</div>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-mini"><div class="v" id="hIntake">0</div><div class="k">Intake kcal</div></div>
+        <div class="stat-mini"><div class="v" id="hBurned">0</div><div class="k">Total burned</div></div>
+        <div class="stat-mini"><div class="v" id="hSteps">0</div><div class="k">Steps walked</div></div>
+        <div class="stat-mini" id="hNetBox"><div class="v" id="hNet">0</div><div class="k">Net (in − out)</div></div>
+      </div>
+    </div>
+
+    <div class="section-title">Today's breakdown</div>
+    <div class="grid cols-3">
+      <div class="card">
+        <label>Idle / Sleep burn <span class="tag good" style="margin-left:6px;">● live</span></label>
+        <div class="num serif" id="dIdle" style="font-size:24px;">0</div>
+        <div class="note">Ticks up automatically from midnight based on your BMR — this runs on its own and can't be edited, just like your body burning calories at rest or asleep.</div>
+      </div>
+      <div class="card">
+        <label>Steps burn</label>
+        <div class="num serif" id="dStepsBurn" style="font-size:24px;">0</div>
+        <div class="note">Estimated from step count and your body weight.</div>
+      </div>
+      <div class="card">
+        <label>Food intake</label>
+        <div class="num serif" id="dIntake" style="font-size:24px;">0</div>
+        <div class="note">Sum of everything logged in Food Log for this date.</div>
+      </div>
+    </div>
+
+    <div class="section-title">Quick add <span class="hint">Tamil Nadu food presets</span></div>
+    <div class="card">
+      <div class="row">
+        <div class="field" style="margin-bottom:0;">
+          <label>Search dish</label>
+          <input type="text" id="quickSearch" placeholder="idli, dosa, sambar, pongal...">
+        </div>
+        <div class="field" style="margin-bottom:0;max-width:120px;">
+          <label>Servings</label>
+          <input type="number" id="quickQty" value="1" min="0.25" step="0.25">
+        </div>
+      </div>
+      <div id="quickResults" class="food-grid" style="margin-top:14px;max-height:260px;"></div>
+    </div>
+  </div>
+
+  <!-- FOOD LOG -->
+  <div class="view" id="view-food">
+    <div class="section-title">South Indian / Tamil Nadu food presets</div>
+    <div class="card">
+      <input type="text" id="foodSearch" class="food-search" placeholder="Search dishes — idli, dosa, pongal, kootu, payasam...">
+      <div class="food-grid" id="foodGrid"></div>
+      <div class="note">Tap a dish to add it to today's log at 1 serving (edit qty afterwards in the table below). Values are typical home-style estimates per standard serving — adjust as needed for your recipe.</div>
+    </div>
+
+    <div class="section-title">Add a new food to your list</div>
+    <div class="card">
+      <div class="row">
+        <div class="field" style="margin-bottom:0;"><label>Dish name</label><input type="text" id="customName" placeholder="e.g. Adai"></div>
+        <div class="field" style="margin-bottom:0;"><label>Calories per serving</label><input type="number" id="customCal" placeholder="e.g. 180"></div>
+        <div class="field" style="margin-bottom:0;"><label>Serving size</label><input type="text" id="customUnit" placeholder="e.g. 1 pc / 1 cup" value="1 serving"></div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div class="field" style="margin-bottom:0;"><label>Category</label>
+          <select id="customCat">
+            <option>Breakfast</option><option>Rice</option><option>Curry</option>
+            <option>Side</option><option>Non-veg</option><option>Snack</option>
+            <option>Dessert</option><option>Drink</option><option>Fruit</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0;max-width:110px;"><label>Servings now</label><input type="number" id="customQty" value="1" min="0.25" step="0.25"></div>
+        <button class="btn" id="addCustomBtn" style="flex:none;">Save &amp; add to log</button>
+      </div>
+      <div class="note">This saves the dish to your food list permanently — it'll show up under its category and in search from now on.</div>
+    </div>
+
+    <div class="section-title">Today's log <span class="hint" id="foodLogDate"></span></div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Dish</th><th>Servings</th><th class="num">kcal/serv</th><th class="num">Total kcal</th><th></th></tr></thead>
+        <tbody id="foodLogBody"></tbody>
+        <tfoot>
+          <tr><td colspan="3" style="text-align:right;font-weight:700;">Total intake</td><td class="num mono" id="foodLogTotal" style="font-weight:700;color:var(--accent);">0</td><td></td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- STEPS -->
+  <div class="view" id="view-steps">
+    <div class="section-title">Steps walked</div>
+    <div class="card">
+      <div class="row">
+        <div class="field" style="margin-bottom:0;"><label>Steps today</label><input type="number" id="stepsInput" placeholder="e.g. 8000"></div>
+        <button class="btn" id="saveStepsBtn" style="flex:none;">Save</button>
+      </div>
+      <div class="divider"></div>
+      <div class="grid cols-3">
+        <div><label>Calories burned (steps)</label><div class="num serif" id="stepsCalOut" style="font-size:26px;">0</div></div>
+        <div><label>Distance (approx)</label><div class="num serif" id="stepsDist" style="font-size:26px;">0 km</div></div>
+        <div><label>Stride estimate used</label><div class="num serif" id="strideUsed" style="font-size:26px;">0.75 m</div></div>
+      </div>
+      <div class="note">Formula: kcal ≈ steps × body weight (kg) × 0.00045. Distance assumes ~0.75m stride (adjust by editing your height in Profile — taller stride slightly increases distance, not calories).</div>
+    </div>
+
+    <div class="section-title">Manual activity / exercise</div>
+    <div class="card">
+      <div class="row">
+        <div class="field" style="margin-bottom:0;"><label>Activity</label>
+          <select id="activitySelect">
+            <option value="brisk_walk">Brisk walk (5 kcal/min)</option>
+            <option value="jog">Jogging (10 kcal/min)</option>
+            <option value="cycle">Cycling (8 kcal/min)</option>
+            <option value="yoga">Yoga (3 kcal/min)</option>
+            <option value="gym">Gym / weights (6 kcal/min)</option>
+            <option value="swim">Swimming (9 kcal/min)</option>
+            <option value="household">Household work (3.5 kcal/min)</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0;max-width:120px;"><label>Minutes</label><input type="number" id="activityMins" placeholder="30"></div>
+        <button class="btn" id="addActivityBtn" style="flex:none;">Log activity</button>
+      </div>
+    </div>
+
+    <div class="section-title">Activity log <span class="hint" id="activityLogDate"></span></div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Activity</th><th class="num">Minutes</th><th class="num">Calories</th><th></th></tr></thead>
+        <tbody id="activityLogBody"></tbody>
+        <tfoot><tr><td style="font-weight:700;text-align:right;" colspan="2">Total</td><td class="num mono" id="activityLogTotal" style="font-weight:700;color:var(--accent);">0</td><td></td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- PROFILE / BMR / BMI -->
+  <div class="view" id="view-profile">
+    <div class="section-title">Your profile</div>
+    <div class="card">
+      <div class="grid cols-3">
+        <div class="field"><label>Gender</label>
+          <select id="pGender"><option value="male">Male</option><option value="female">Female</option></select>
+        </div>
+        <div class="field"><label>Age (years)</label><input type="number" id="pAge" placeholder="e.g. 28"></div>
+        <div class="field"><label>Height (cm)</label><input type="number" id="pHeight" placeholder="e.g. 170"></div>
+        <div class="field"><label>Weight (kg)</label><input type="number" id="pWeight" placeholder="e.g. 68"></div>
+        <div class="field"><label>Activity level</label>
+          <select id="pActivity">
+            <option value="1.2">Sedentary (desk job, little exercise)</option>
+            <option value="1.375">Lightly active (1–3 days/week)</option>
+            <option value="1.55">Moderately active (3–5 days/week)</option>
+            <option value="1.725">Very active (6–7 days/week)</option>
+            <option value="1.9">Extra active (physical job + training)</option>
+          </select>
+        </div>
+        <div class="field"><label>Goal</label>
+          <select id="pGoal">
+            <option value="lose">Lose weight</option>
+            <option value="maintain">Maintain weight</option>
+            <option value="gain">Gain weight</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" id="saveProfileBtn">Save profile</button>
+    </div>
+
+    <div class="section-title">BMR &amp; BMI</div>
+    <div class="grid cols-3">
+      <div class="card">
+        <label>BMR — Basal Metabolic Rate</label>
+        <div class="num serif" id="bmrVal" style="font-size:28px;">—</div>
+        <div class="note">Calories burned per day at complete rest (Mifflin-St Jeor formula).</div>
+      </div>
+      <div class="card">
+        <label>TDEE — Total Daily Energy Expenditure</label>
+        <div class="num serif" id="tdeeVal" style="font-size:28px;">—</div>
+        <div class="note">BMR × activity multiplier. This is roughly what you burn in an average day including movement.</div>
+      </div>
+      <div class="card">
+        <label>BMI — Body Mass Index</label>
+        <div class="num serif" id="bmiVal" style="font-size:28px;">—</div>
+        <div class="note" id="bmiCategory">—</div>
+      </div>
+    </div>
+
+    <div class="section-title">How to reduce / burn — your target</div>
+    <div class="card" id="goalCard">
+      <div class="grid cols-2">
+        <div>
+          <label>Suggested daily calorie target</label>
+          <div class="num serif" id="targetCals" style="font-size:26px;">—</div>
+          <div class="note" id="targetNote">Save your profile to see a personalised target.</div>
+        </div>
+        <div>
+          <label>To burn 1 kg of fat (~7700 kcal)</label>
+          <div class="num serif" id="deficitDays" style="font-size:26px;">—</div>
+          <div class="note">At a steady daily deficit, this is roughly how long it takes.</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="note" style="font-size:13px;color:var(--text-dim);">
+        <strong style="color:var(--text);">Practical ways to burn more, sustainably:</strong><br>
+        • Walk 8,000–10,000 steps/day — set a step reminder in the Reminders tab.<br>
+        • Swap deep-fried items (vada, poori, bonda) for steamed/grilled equivalents (idli, appam) a few times a week.<br>
+        • Keep a moderate deficit (300–500 kcal/day) rather than a large one — easier to sustain and preserves muscle.<br>
+        • Add 20–30 min of brisk walking or a home workout — log it under Steps &amp; Activity.<br>
+        • Prioritise protein (curd, sprouts, egg, fish) to stay full for longer.
+      </div>
+    </div>
+  </div>
+
+  <!-- REMINDERS -->
+  <div class="view" id="view-reminders">
+    <div class="section-title">Set an alarm / reminder</div>
+    <div class="card">
+      <div class="row">
+        <div class="field" style="margin-bottom:0;"><label>Time</label><input type="time" id="remTime"></div>
+        <div class="field" style="margin-bottom:0;"><label>Label</label>
+          <select id="remLabel">
+            <option>Log breakfast</option>
+            <option>Log lunch</option>
+            <option>Log dinner</option>
+            <option>Walk / step goal check</option>
+            <option>Drink water</option>
+            <option>Custom</option>
+          </select>
+        </div>
+        <button class="btn" id="addReminderBtn" style="flex:none;">Add reminder</button>
+      </div>
+      <div class="note">Reminders trigger while this tab is open (browser notification + in-app alarm sound/toast). Keep this page open in a background tab for it to alert you at the set time.</div>
+    </div>
+
+    <div class="section-title">Your reminders</div>
+    <div id="reminderList"></div>
+
+    <div class="section-title">Notifications</div>
+    <div class="card">
+      <button class="btn secondary" id="enableNotifBtn">Enable browser notifications</button>
+      <span id="notifStatus" style="margin-left:10px;font-size:12.5px;color:var(--text-dim);"></span>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+/* ===================== DATA: South Indian / Tamil Nadu food presets ===================== */
+const FOOD_DB = [
+  {n:"Idli",u:"2 pcs",c:78,cat:"Breakfast"},
+  {n:"Plain Dosa",u:"1 pc",c:133,cat:"Breakfast"},
+  {n:"Masala Dosa",u:"1 pc",c:220,cat:"Breakfast"},
+  {n:"Rava Dosa",u:"1 pc",c:180,cat:"Breakfast"},
+  {n:"Uttapam",u:"1 pc",c:180,cat:"Breakfast"},
+  {n:"Medu Vada",u:"1 pc",c:97,cat:"Breakfast"},
+  {n:"Sambar Vada",u:"1 pc",c:150,cat:"Breakfast"},
+  {n:"Pongal (Ven Pongal)",u:"1 cup",c:250,cat:"Breakfast"},
+  {n:"Kesari (Rava)",u:"1 cup",c:200,cat:"Dessert"},
+  {n:"Idiyappam (String Hoppers)",u:"3 pcs",c:110,cat:"Breakfast"},
+  {n:"Appam",u:"1 pc",c:120,cat:"Breakfast"},
+  {n:"Poori (2 pcs)",u:"2 pcs",c:200,cat:"Breakfast"},
+  {n:"Upma (Rava)",u:"1 cup",c:220,cat:"Breakfast"},
+  {n:"Chapati",u:"1 pc",c:104,cat:"Breakfast"},
+  {n:"Sambar",u:"1 cup",c:120,cat:"Curry"},
+  {n:"Rasam",u:"1 cup",c:60,cat:"Curry"},
+  {n:"Coconut Chutney",u:"2 tbsp",c:60,cat:"Side"},
+  {n:"Tomato Chutney",u:"2 tbsp",c:45,cat:"Side"},
+  {n:"Vegetable Kurma",u:"1 cup",c:180,cat:"Curry"},
+  {n:"Kootu (Mixed Veg)",u:"1 cup",c:140,cat:"Curry"},
+  {n:"Poriyal (Veg Stir-fry)",u:"1 cup",c:110,cat:"Side"},
+  {n:"Avial",u:"1 cup",c:160,cat:"Curry"},
+  {n:"Plain Cooked Rice",u:"1 cup",c:200,cat:"Rice"},
+  {n:"Sambar Rice",u:"1 plate",c:300,cat:"Rice"},
+  {n:"Rasam Rice",u:"1 plate",c:260,cat:"Rice"},
+  {n:"Curd Rice",u:"1 cup",c:200,cat:"Rice"},
+  {n:"Lemon Rice",u:"1 cup",c:250,cat:"Rice"},
+  {n:"Tamarind Rice (Puliyodarai)",u:"1 cup",c:280,cat:"Rice"},
+  {n:"Bisi Bele Bath",u:"1 cup",c:280,cat:"Rice"},
+  {n:"Coconut Rice",u:"1 cup",c:270,cat:"Rice"},
+  {n:"Biryani (Veg)",u:"1 plate",c:400,cat:"Rice"},
+  {n:"Biryani (Chicken)",u:"1 plate",c:520,cat:"Rice"},
+  {n:"Chicken Curry",u:"1 cup",c:280,cat:"Non-veg"},
+  {n:"Mutton Curry",u:"1 cup",c:350,cat:"Non-veg"},
+  {n:"Fish Curry (Meen Kuzhambu)",u:"1 cup",c:220,cat:"Non-veg"},
+  {n:"Egg Curry",u:"1 pc egg",c:150,cat:"Non-veg"},
+  {n:"Boiled Egg",u:"1 pc",c:78,cat:"Non-veg"},
+  {n:"Chettinad Chicken",u:"1 cup",c:320,cat:"Non-veg"},
+  {n:"Fried Fish (2 pcs)",u:"2 pcs",c:280,cat:"Non-veg"},
+  {n:"Buttermilk (Moru)",u:"1 glass",c:40,cat:"Drink"},
+  {n:"Filter Coffee",u:"1 cup",c:60,cat:"Drink"},
+  {n:"Masala Tea",u:"1 cup",c:70,cat:"Drink"},
+  {n:"Tender Coconut Water",u:"1 pc",c:45,cat:"Drink"},
+  {n:"Sugarcane Juice",u:"1 glass",c:180,cat:"Drink"},
+  {n:"Payasam (Semiya/Paal)",u:"1 cup",c:250,cat:"Dessert"},
+  {n:"Banana (Nendran/regular)",u:"1 medium",c:105,cat:"Fruit"},
+  {n:"Sprouts Salad",u:"1 cup",c:150,cat:"Snack"},
+  {n:"Murukku (2 pcs)",u:"2 pcs",c:120,cat:"Snack"},
+  {n:"Banana Chips",u:"small handful",c:150,cat:"Snack"},
+  {n:"Groundnut/Peanut Chikki",u:"1 pc",c:120,cat:"Snack"},
+  {n:"Bonda (1 pc)",u:"1 pc",c:150,cat:"Snack"},
+  {n:"Bajji (1 pc)",u:"1 pc",c:130,cat:"Snack"},
+  {n:"Adai",u:"1 pc",c:170,cat:"Breakfast"},
+  {n:"Paruppu (Dal) Curry",u:"1 cup",c:150,cat:"Curry"},
+  {n:"Curd (plain)",u:"1 cup",c:98,cat:"Side"},
+  {n:"Vegetable Fried Rice",u:"1 plate",c:350,cat:"Rice"},
+  {n:"Egg Fried Rice",u:"1 plate",c:400,cat:"Rice"},
+  {n:"Chicken Fried Rice",u:"1 plate",c:450,cat:"Rice"},
+  {n:"Schezwan Fried Rice",u:"1 plate",c:380,cat:"Rice"},
+  {n:"Veg Noodles (Chow Mein)",u:"1 plate",c:320,cat:"Rice"},
+  {n:"Egg Noodles",u:"1 plate",c:380,cat:"Rice"},
+  {n:"Chicken Noodles",u:"1 plate",c:420,cat:"Rice"},
+];
+let CUSTOM_FOODS = []; // loaded from storage, merged into ALL_FOODS
+function allFoods(){ return FOOD_DB.concat(CUSTOM_FOODS); }
+const CAT_ORDER = ["Breakfast","Rice","Curry","Side","Non-veg","Snack","Dessert","Drink","Fruit","Other"];
+
+/* ===================== STORAGE HELPERS ===================== */
+const todayStr = () => new Date().toISOString().slice(0,10);
+let state = {
+  date: todayStr(),
+  profile: null,
+  foodLogs: {},     // date -> [{name,cal,qty}]
+  activityLogs: {}, // date -> [{name,mins,cal}]
+  stepsLogs: {},    // date -> steps
+  reminders: []
+};
+
+async function loadAll(){
+  try{ const r = await window.storage.get('profile'); if(r) state.profile = JSON.parse(r.value); }catch(e){}
+  try{ const r = await window.storage.get('reminders'); if(r) state.reminders = JSON.parse(r.value); }catch(e){}
+  try{ const r = await window.storage.get('customfoods'); if(r) CUSTOM_FOODS = JSON.parse(r.value); }catch(e){ CUSTOM_FOODS = []; }
+  const d = state.date;
+  try{ const r = await window.storage.get('foodlog:'+d); if(r) state.foodLogs[d] = JSON.parse(r.value); }catch(e){ state.foodLogs[d] = []; }
+  try{ const r = await window.storage.get('activitylog:'+d); if(r) state.activityLogs[d] = JSON.parse(r.value); }catch(e){ state.activityLogs[d] = []; }
+  try{ const r = await window.storage.get('stepslog:'+d); if(r) state.stepsLogs[d] = JSON.parse(r.value); }catch(e){ state.stepsLogs[d] = 0; }
+}
+async function saveFoodLog(){ await window.storage.set('foodlog:'+state.date, JSON.stringify(state.foodLogs[state.date]||[])); }
+async function saveActivityLog(){ await window.storage.set('activitylog:'+state.date, JSON.stringify(state.activityLogs[state.date]||[])); }
+async function saveStepsLog(){ await window.storage.set('stepslog:'+state.date, JSON.stringify(state.stepsLogs[state.date]||0)); }
+async function saveProfile(){ await window.storage.set('profile', JSON.stringify(state.profile)); }
+async function saveReminders(){ await window.storage.set('reminders', JSON.stringify(state.reminders)); }
+async function saveCustomFoods(){ await window.storage.set('customfoods', JSON.stringify(CUSTOM_FOODS)); }
+
+async function loadDate(d){
+  state.date = d;
+  try{ const r = await window.storage.get('foodlog:'+d); state.foodLogs[d] = r? JSON.parse(r.value):[]; }catch(e){ state.foodLogs[d]=[]; }
+  try{ const r = await window.storage.get('activitylog:'+d); state.activityLogs[d] = r? JSON.parse(r.value):[]; }catch(e){ state.activityLogs[d]=[]; }
+  try{ const r = await window.storage.get('stepslog:'+d); state.stepsLogs[d] = r? JSON.parse(r.value):0; }catch(e){ state.stepsLogs[d]=0; }
+  renderAll();
+}
+
+/* ===================== TOAST ===================== */
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+/* ===================== NAV ===================== */
+document.getElementById('nav').addEventListener('click', e=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+btn.dataset.view).classList.add('active');
+});
+
+/* ===================== DATE PICKER ===================== */
+const datePicker = document.getElementById('datePicker');
+datePicker.value = state.date;
+datePicker.addEventListener('change', ()=> loadDate(datePicker.value));
+
+/* ===================== THEME ===================== */
+const themeToggle = document.getElementById('themeToggle');
+function applyTheme(mode){
+  if(mode==='dark') document.documentElement.setAttribute('data-theme','dark');
+  else document.documentElement.removeAttribute('data-theme');
+  themeToggle.classList.toggle('on', mode==='dark');
+}
+themeToggle.addEventListener('click', async ()=>{
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  const next = isDark ? 'light' : 'dark';
+  applyTheme(next);
+  try{ await window.storage.set('theme', next); }catch(e){}
+});
+(async function initTheme(){
+  let mode = 'light';
+  try{
+    const r = await window.storage.get('theme');
+    if(r) mode = r.value;
+    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) mode='dark';
+  }catch(e){}
+  applyTheme(mode);
+})();
+
+/* ===================== CALCULATIONS ===================== */
+function calcBMR(p){
+  if(!p) return null;
+  const {gender, age, height, weight} = p;
+  if(!age||!height||!weight) return null;
+  let bmr = 10*weight + 6.25*height - 5*age;
+  bmr += gender==='male' ? 5 : -161;
+  return Math.round(bmr);
+}
+function calcBMI(p){
+  if(!p||!p.height||!p.weight) return null;
+  const hM = p.height/100;
+  return p.weight / (hM*hM);
+}
+function bmiCategory(bmi){
+  if(bmi<18.5) return ['Underweight','bad'];
+  if(bmi<25) return ['Normal weight','good'];
+  if(bmi<30) return ['Overweight','bad'];
+  return ['Obese','bad'];
+}
+function stepsCalories(steps, weight){
+  weight = weight || 65;
+  return Math.round(steps * weight * 0.00045);
+}
+
+const ACTIVITY_RATES = {
+  brisk_walk:5, jog:10, cycle:8, yoga:3, gym:6, swim:9, household:3.5
+};
+const ACTIVITY_LABELS = {
+  brisk_walk:"Brisk walk", jog:"Jogging", cycle:"Cycling", yoga:"Yoga", gym:"Gym / weights", swim:"Swimming", household:"Household work"
+};
+
+/* ===================== RENDER: FOOD GRID (categorized) ===================== */
+function renderFoodGrid(containerId, query, onPick, flat){
+  const el = document.getElementById(containerId);
+  const q = (query||'').toLowerCase().trim();
+  const pool = allFoods();
+  const items = pool.filter(f => !q || f.n.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q));
+
+  if(items.length===0){
+    el.innerHTML = `<div class="note">No dishes match "${query}".</div>`;
+    return;
+  }
+
+  function cardHtml(f){
+    const idx = pool.indexOf(f);
+    return `<div class="food-item" data-idx="${idx}">
+      <div class="fname">${f.n}</div>
+      <div class="fmeta">${f.c} kcal / ${f.u}</div>
+      <span class="fcat">${f.cat}</span>
+    </div>`;
+  }
+
+  if(flat || q){
+    el.className = 'food-grid flat';
+    el.innerHTML = items.map(cardHtml).join('');
+  } else {
+    el.className = 'food-grid flat';
+    const byCat = {};
+    items.forEach(f => { (byCat[f.cat] = byCat[f.cat]||[]).push(f); });
+    const cats = CAT_ORDER.filter(c=>byCat[c]).concat(Object.keys(byCat).filter(c=>!CAT_ORDER.includes(c)));
+    el.innerHTML = cats.map(cat => `
+      <div class="cat-block">
+        <div class="cat-heading">${cat}</div>
+        <div class="food-grid flat">${byCat[cat].map(cardHtml).join('')}</div>
+      </div>`).join('');
+  }
+
+  el.querySelectorAll('.food-item').forEach(node=>{
+    node.addEventListener('click', ()=>{
+      const f = pool[node.dataset.idx];
+      onPick(f);
+    });
+  });
+}
+
+/* ===================== FOOD LOG VIEW ===================== */
+document.getElementById('foodSearch').addEventListener('input', e=>{
+  renderFoodGrid('foodGrid', e.target.value, f => addFoodToLog(f.n, f.c, 1));
+});
+document.getElementById('quickSearch').addEventListener('input', e=>{
+  const qty = parseFloat(document.getElementById('quickQty').value)||1;
+  renderFoodGrid('quickResults', e.target.value, f => { addFoodToLog(f.n, f.c, qty); document.getElementById('quickSearch').value=''; renderFoodGrid('quickResults','',()=>{},true); }, true);
+});
+document.getElementById('addCustomBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('customName').value.trim();
+  const cal = parseFloat(document.getElementById('customCal').value);
+  const unit = document.getElementById('customUnit').value.trim() || '1 serving';
+  const cat = document.getElementById('customCat').value;
+  const qty = parseFloat(document.getElementById('customQty').value)||1;
+  if(!name || !cal){ toast('Enter a dish name and calorie value'); return; }
+  CUSTOM_FOODS.push({n:name, u:unit, c:cal, cat:cat});
+  await saveCustomFoods();
+  addFoodToLog(name, cal, qty);
+  document.getElementById('customName').value='';
+  document.getElementById('customCal').value='';
+  document.getElementById('customUnit').value='1 serving';
+  document.getElementById('customQty').value=1;
+  renderFoodGrid('foodGrid', document.getElementById('foodSearch').value, f=>addFoodToLog(f.n,f.c,1));
+});
+
+async function addFoodToLog(name, cal, qty){
+  if(!state.foodLogs[state.date]) state.foodLogs[state.date] = [];
+  state.foodLogs[state.date].push({name, cal, qty});
+  await saveFoodLog();
+  toast(`Added ${name} × ${qty} (${Math.round(cal*qty)} kcal)`);
+  renderAll();
+}
+async function removeFoodEntry(idx){
+  state.foodLogs[state.date].splice(idx,1);
+  await saveFoodLog();
+  renderAll();
+}
+
+function renderFoodLog(){
+  const body = document.getElementById('foodLogBody');
+  const log = state.foodLogs[state.date] || [];
+  document.getElementById('foodLogDate').textContent = state.date;
+  if(log.length===0){
+    body.innerHTML = `<tr class="empty-row"><td colspan="5">No food logged yet for this date.</td></tr>`;
+  } else {
+    body.innerHTML = log.map((e,i)=>`
+      <tr>
+        <td>${e.name}</td>
+        <td>${e.qty}</td>
+        <td class="num mono">${e.cal}</td>
+        <td class="num mono">${Math.round(e.cal*e.qty)}</td>
+        <td><button class="del-btn" data-i="${i}">✕</button></td>
+      </tr>`).join('');
+    body.querySelectorAll('.del-btn').forEach(b=>b.addEventListener('click', ()=>removeFoodEntry(parseInt(b.dataset.i))));
+  }
+  const total = log.reduce((s,e)=>s+e.cal*e.qty,0);
+  document.getElementById('foodLogTotal').textContent = Math.round(total);
+  return total;
+}
+
+/* ===================== STEPS VIEW ===================== */
+document.getElementById('saveStepsBtn').addEventListener('click', async ()=>{
+  const v = parseInt(document.getElementById('stepsInput').value)||0;
+  state.stepsLogs[state.date] = v;
+  await saveStepsLog();
+  toast(`Saved ${v} steps for ${state.date}`);
+  renderAll();
+});
+document.getElementById('addActivityBtn').addEventListener('click', async ()=>{
+  const act = document.getElementById('activitySelect').value;
+  const mins = parseFloat(document.getElementById('activityMins').value);
+  if(!mins){ toast('Enter minutes'); return; }
+  const cal = Math.round(ACTIVITY_RATES[act]*mins);
+  if(!state.activityLogs[state.date]) state.activityLogs[state.date]=[];
+  state.activityLogs[state.date].push({name:ACTIVITY_LABELS[act], mins, cal});
+  await saveActivityLog();
+  document.getElementById('activityMins').value='';
+  toast(`Logged ${ACTIVITY_LABELS[act]} — ${cal} kcal`);
+  renderAll();
+});
+async function removeActivityEntry(idx){
+  state.activityLogs[state.date].splice(idx,1);
+  await saveActivityLog();
+  renderAll();
+}
+function renderStepsView(){
+  const steps = state.stepsLogs[state.date] || 0;
+  document.getElementById('stepsInput').value = steps || '';
+  const weight = state.profile ? state.profile.weight : 65;
+  const cal = stepsCalories(steps, weight);
+  document.getElementById('stepsCalOut').textContent = cal;
+  const strideM = state.profile && state.profile.height ? (state.profile.height*0.415/100) : 0.75;
+  document.getElementById('strideUsed').textContent = strideM.toFixed(2)+' m';
+  const distKm = (steps*strideM/1000).toFixed(2);
+  document.getElementById('stepsDist').textContent = distKm+' km';
+
+  document.getElementById('activityLogDate').textContent = state.date;
+  const body = document.getElementById('activityLogBody');
+  const log = state.activityLogs[state.date] || [];
+  if(log.length===0){
+    body.innerHTML = `<tr class="empty-row"><td colspan="4">No activity logged yet.</td></tr>`;
+  } else {
+    body.innerHTML = log.map((e,i)=>`
+      <tr><td>${e.name}</td><td class="num mono">${e.mins}</td><td class="num mono">${e.cal}</td>
+      <td><button class="del-btn" data-i="${i}">✕</button></td></tr>`).join('');
+    body.querySelectorAll('.del-btn').forEach(b=>b.addEventListener('click', ()=>removeActivityEntry(parseInt(b.dataset.i))));
+  }
+  const actTotal = log.reduce((s,e)=>s+e.cal,0);
+  document.getElementById('activityLogTotal').textContent = actTotal;
+  return {stepsCal:cal, actTotal};
+}
+
+/* ===================== PROFILE VIEW ===================== */
+function fillProfileForm(){
+  if(!state.profile) return;
+  const p = state.profile;
+  document.getElementById('pGender').value = p.gender;
+  document.getElementById('pAge').value = p.age;
+  document.getElementById('pHeight').value = p.height;
+  document.getElementById('pWeight').value = p.weight;
+  document.getElementById('pActivity').value = p.activity;
+  document.getElementById('pGoal').value = p.goal;
+}
+document.getElementById('saveProfileBtn').addEventListener('click', async ()=>{
+  const p = {
+    gender: document.getElementById('pGender').value,
+    age: parseFloat(document.getElementById('pAge').value),
+    height: parseFloat(document.getElementById('pHeight').value),
+    weight: parseFloat(document.getElementById('pWeight').value),
+    activity: parseFloat(document.getElementById('pActivity').value),
+    goal: document.getElementById('pGoal').value
+  };
+  if(!p.age||!p.height||!p.weight){ toast('Fill age, height and weight'); return; }
+  state.profile = p;
+  await saveProfile();
+  toast('Profile saved');
+  renderAll();
+});
+
+function renderProfileCalcs(){
+  const p = state.profile;
+  const bmr = calcBMR(p);
+  const bmi = calcBMI(p);
+  document.getElementById('bmrVal').textContent = bmr ? bmr+' kcal/day' : '—';
+  const tdee = bmr && p ? Math.round(bmr*p.activity) : null;
+  document.getElementById('tdeeVal').textContent = tdee ? tdee+' kcal/day' : '—';
+  document.getElementById('bmiVal').textContent = bmi ? bmi.toFixed(1) : '—';
+  if(bmi){
+    const [cat,cls] = bmiCategory(bmi);
+    document.getElementById('bmiCategory').innerHTML = `Category: <span class="tag ${cls}">${cat}</span>`;
+  } else {
+    document.getElementById('bmiCategory').textContent = 'Save your profile to calculate.';
+  }
+  if(tdee && p){
+    let target = tdee;
+    if(p.goal==='lose') target = tdee - 500;
+    if(p.goal==='gain') target = tdee + 500;
+    document.getElementById('targetCals').textContent = Math.round(target)+' kcal/day';
+    const goalTxt = p.goal==='lose' ? 'a ~500 kcal/day deficit for steady, sustainable fat loss (~0.5 kg/week).' :
+                    p.goal==='gain' ? 'a ~500 kcal/day surplus to support gradual weight gain.' :
+                    'your maintenance level to hold current weight.';
+    document.getElementById('targetNote').textContent = `Based on TDEE (${tdee}) with ${goalTxt}`;
+    document.getElementById('deficitDays').textContent = Math.round(7700/500)+' days';
+  } else {
+    document.getElementById('targetCals').textContent = '—';
+    document.getElementById('deficitDays').textContent = '—';
+  }
+  return bmr;
+}
+
+/* ===================== DASHBOARD ===================== */
+function renderDashboard(intake, idle, stepsCal, actTotal){
+  const burned = idle + stepsCal + actTotal;
+  const net = intake - burned;
+  document.getElementById('hIntake').textContent = Math.round(intake);
+  document.getElementById('hBurned').textContent = Math.round(burned);
+  document.getElementById('hSteps').textContent = (state.stepsLogs[state.date]||0).toLocaleString();
+  document.getElementById('hNet').textContent = (net>=0?'+':'')+Math.round(net);
+  const netBox = document.getElementById('hNetBox');
+  netBox.className = 'stat-mini ' + (net>0 ? 'neg' : 'pos');
+
+  document.getElementById('dIdle').textContent = Math.round(idle);
+  document.getElementById('dStepsBurn').textContent = Math.round(stepsCal);
+  document.getElementById('dIntake').textContent = Math.round(intake);
+
+  // gauge: percent of target used (fallback to TDEE or 2000)
+  let target = 2000;
+  if(state.profile){
+    const bmr = calcBMR(state.profile);
+    const tdee = bmr*state.profile.activity;
+    target = state.profile.goal==='lose'? tdee-500 : state.profile.goal==='gain'? tdee+500 : tdee;
+  }
+  const pct = Math.max(0, Math.min(1, intake/target));
+  const circumference = 2*Math.PI*86;
+  const offset = circumference*(1-pct);
+  document.getElementById('gaugeFg').style.strokeDasharray = circumference;
+  document.getElementById('gaugeFg').style.strokeDashoffset = offset;
+  document.getElementById('gaugeFg').style.stroke = pct>1 ? 'var(--bad)' : 'var(--accent)';
+  document.getElementById('gaugeNum').textContent = Math.round(intake);
+  document.getElementById('gaugeLbl').textContent = `of ${Math.round(target)} kcal target`;
+
+  renderFoodGrid('quickResults','', f=>{ addFoodToLog(f.n,f.c,parseFloat(document.getElementById('quickQty').value)||1); }, true);
+}
+
+/* ===================== REMINDERS ===================== */
+function renderReminders(){
+  const list = document.getElementById('reminderList');
+  if(state.reminders.length===0){
+    list.innerHTML = `<div class="card"><div class="note">No reminders yet — add one above (e.g. 8:00 AM "Log breakfast", or a step-goal check in the evening).</div></div>`;
+    return;
+  }
+  list.innerHTML = state.reminders.map((r,i)=>`
+    <div class="reminder-item">
+      <div>
+        <div class="rt">${r.time}</div>
+        <div class="rl">${r.label}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="toggle ${r.enabled?'on':''}" data-i="${i}"></div>
+        <button class="del-btn" data-del="${i}">✕</button>
+      </div>
+    </div>`).join('');
+  list.querySelectorAll('.toggle').forEach(t=>t.addEventListener('click', async ()=>{
+    const i = parseInt(t.dataset.i);
+    state.reminders[i].enabled = !state.reminders[i].enabled;
+    await saveReminders();
+    renderReminders();
+  }));
+  list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
+    state.reminders.splice(parseInt(b.dataset.del),1);
+    await saveReminders();
+    renderReminders();
+  }));
+}
+document.getElementById('addReminderBtn').addEventListener('click', async ()=>{
+  const time = document.getElementById('remTime').value;
+  const label = document.getElementById('remLabel').value;
+  if(!time){ toast('Pick a time'); return; }
+  state.reminders.push({time, label, enabled:true, firedToday:null});
+  await saveReminders();
+  renderReminders();
+  toast('Reminder added');
+});
+document.getElementById('enableNotifBtn').addEventListener('click', ()=>{
+  if(!('Notification' in window)){ document.getElementById('notifStatus').textContent='Not supported in this browser.'; return; }
+  Notification.requestPermission().then(p=>{
+    document.getElementById('notifStatus').textContent = p==='granted' ? 'Enabled ✓' : 'Permission denied';
+  });
+});
+
+/* Check reminders every 20s while tab is open */
+setInterval(()=>{
+  const now = new Date();
+  const hhmm = now.toTimeString().slice(0,5);
+  const todayKey = now.toISOString().slice(0,10);
+  state.reminders.forEach(r=>{
+    if(r.enabled && r.time===hhmm && r.firedToday!==todayKey){
+      r.firedToday = todayKey;
+      toast(`⏰ ${r.label}`);
+      if('Notification' in window && Notification.permission==='granted'){
+        new Notification('Tracker', {body:r.label});
+      }
+      try{
+        const ctx = new (window.AudioContext||window.webkitAudioContext)();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 880; g.gain.value = 0.08;
+        o.start(); setTimeout(()=>{o.stop(); ctx.close();}, 350);
+      }catch(e){}
+      saveReminders();
+    }
+  });
+}, 20000);
+
+/* ===================== LIVE IDLE / SLEEP BURN =====================
+   Runs on its own, ticking from midnight, based on BMR. Not editable —
+   this mirrors the body burning calories continuously at rest / asleep.
+   Only counts up for the currently-viewed date if it's today; past
+   dates show the full day's worth, future dates show 0. */
+function idleCaloriesSoFar(bmr){
+  bmr = bmr || 1600;
+  const perSecond = bmr / 86400;
+  const now = new Date();
+  const nowKey = now.toISOString().slice(0,10);
+  if(state.date === nowKey){
+    const secondsToday = now.getHours()*3600 + now.getMinutes()*60 + now.getSeconds();
+    return secondsToday * perSecond;
+  } else if(state.date < nowKey){
+    return bmr; // full day already elapsed
+  }
+  return 0; // future date
+}
+
+/* ===================== MASTER RENDER ===================== */
+let lastBmr = null;
+function renderAll(){
+  const intake = renderFoodLog();
+  const {stepsCal, actTotal} = renderStepsView();
+  const bmr = renderProfileCalcs();
+  lastBmr = bmr || 1600;
+  const idle = idleCaloriesSoFar(lastBmr);
+  renderDashboard(intake, idle, stepsCal, actTotal);
+  renderReminders();
+  renderFoodGrid('foodGrid', document.getElementById('foodSearch').value, f=>addFoodToLog(f.n,f.c,1));
+}
+
+/* Tick the idle counter every second without re-rendering everything */
+setInterval(()=>{
+  const now = new Date();
+  const nowKey = now.toISOString().slice(0,10);
+  if(state.date !== nowKey) return; // only ticks live for today
+  const idle = idleCaloriesSoFar(lastBmr);
+  document.getElementById('dIdle').textContent = Math.round(idle);
+  const intake = (state.foodLogs[state.date]||[]).reduce((s,e)=>s+e.cal*e.qty,0);
+  const steps = state.stepsLogs[state.date]||0;
+  const weight = state.profile ? state.profile.weight : 65;
+  const stepsCal = stepsCalories(steps, weight);
+  const actTotal = (state.activityLogs[state.date]||[]).reduce((s,e)=>s+e.cal,0);
+  renderDashboard(intake, idle, stepsCal, actTotal);
+}, 1000);
+
+/* ===================== INIT ===================== */
+(async function init(){
+  await loadAll();
+  fillProfileForm();
+  renderAll();
+})();
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+
+</script>
+</body>
+</html>
